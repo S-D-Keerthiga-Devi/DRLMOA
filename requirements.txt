@@ -6,4 +6,11 @@ seaborn==0.12.2
 scikit-learn==1.2.2
 torch==2.0.1
 tqdm==4.66.1
-plotly==5.18.0 
+plotly==5.18.0
+optuna==3.3.0
+pygments==2.19.1
+markdown-it-py==3.0.0
+mdurl==0.1.2
+rich==14.0.0
+protobuf==3.20.3
+pyyaml>=6.0.1 
