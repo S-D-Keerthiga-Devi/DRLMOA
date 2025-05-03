@@ -12,7 +12,19 @@ import matplotlib.patches as patches
 import time
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
-from sklearn.manifold import TSNE  # For t-SNE visualization
+try:
+    from sklearn.manifold import TSNE  # For t-SNE visualization
+except ImportError:
+    # Fallback if TSNE is not available
+    class TSNE:
+        def __init__(self, n_components=2, random_state=None):
+            self.n_components = n_components
+            self.random_state = random_state
+            
+        def fit_transform(self, data):
+            # Simplified fallback that just returns random projections
+            np.random.seed(self.random_state)
+            return np.random.randn(data.shape[0], self.n_components)
 from mpl_toolkits.mplot3d import Axes3D  # For 3D visualization
 
 # Set page configuration
@@ -3385,52 +3397,64 @@ elif page == "Advanced Techniques":
                 """)
             
             with col2:
-                # Create t-SNE visualization of latent space
-                np.random.seed(42)
-                # Create dummy latent vectors (128-dimensional)
-                num_samples = 300
-                latent_dim = 128
-                latent_vectors = np.random.randn(num_samples, latent_dim)
-                
-                # Assign "problem types" - 3 clusters
-                problem_types = np.zeros(num_samples)
-                problem_types[100:200] = 1
-                problem_types[200:] = 2
-                
-                # Assign "quality scores"
-                quality = np.random.random(num_samples)
-                quality[problem_types == 0] += 0.2
-                quality[problem_types == 2] -= 0.1
-                
-                # Apply t-SNE
-                tsne = TSNE(n_components=2, random_state=42)
-                latent_2d = tsne.fit_transform(latent_vectors)
-                
-                # Plot
-                fig, ax = plt.subplots(figsize=(6, 5))
-                scatter = ax.scatter(latent_2d[:, 0], latent_2d[:, 1], 
-                                   c=quality, cmap='plasma', 
-                                   s=80, alpha=0.8)
-                
-                # Add color bar
-                cbar = plt.colorbar(scatter)
-                cbar.set_label('Solution Quality')
-                
-                # Add markers for different problem types
-                markers = ['o', 's', '^']
-                labels = ['Small Cities', 'Medium Cities', 'Large Cities']
-                
-                for i, marker, label in zip(range(3), markers, labels):
-                    mask = problem_types == i
-                    ax.scatter(latent_2d[mask, 0], latent_2d[mask, 1], 
-                              marker=marker, s=100, facecolors='none', 
-                              edgecolors='black', linewidths=1, label=label)
-                
-                ax.set_title('t-SNE Visualization of Latent Space')
-                ax.legend()
-                
-                st.pyplot(fig)
-                st.caption("t-SNE visualization of encoder output space colored by solution quality")
+                try:
+                    # Create t-SNE visualization of latent space
+                    np.random.seed(42)
+                    # Create dummy latent vectors (128-dimensional)
+                    num_samples = 300
+                    latent_dim = 128
+                    latent_vectors = np.random.randn(num_samples, latent_dim)
+                    
+                    # Assign "problem types" - 3 clusters
+                    problem_types = np.zeros(num_samples)
+                    problem_types[100:200] = 1
+                    problem_types[200:] = 2
+                    
+                    # Assign "quality scores"
+                    quality = np.random.random(num_samples)
+                    quality[problem_types == 0] += 0.2
+                    quality[problem_types == 2] -= 0.1
+                    
+                    # Apply t-SNE
+                    tsne = TSNE(n_components=2, random_state=42)
+                    latent_2d = tsne.fit_transform(latent_vectors)
+                    
+                    # Plot
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    scatter = ax.scatter(latent_2d[:, 0], latent_2d[:, 1], 
+                                       c=quality, cmap='plasma', 
+                                       s=80, alpha=0.8)
+                    
+                    # Add color bar
+                    cbar = plt.colorbar(scatter)
+                    cbar.set_label('Solution Quality')
+                    
+                    # Add markers for different problem types
+                    markers = ['o', 's', '^']
+                    labels = ['Small Cities', 'Medium Cities', 'Large Cities']
+                    
+                    for i, marker, label in zip(range(3), markers, labels):
+                        mask = problem_types == i
+                        ax.scatter(latent_2d[mask, 0], latent_2d[mask, 1], 
+                                  marker=marker, s=100, facecolors='none', 
+                                  edgecolors='black', linewidths=1, label=label)
+                    
+                    ax.set_title('t-SNE Visualization of Latent Space')
+                    ax.legend()
+                    
+                    st.pyplot(fig)
+                    st.caption("t-SNE visualization of encoder output space colored by solution quality")
+                except Exception as e:
+                    st.error(f"Latent space visualization could not be rendered: {str(e)}")
+                    st.warning("Try running the app locally for complete visualization features.")
+                    # Display a simple placeholder image
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    ax.text(0.5, 0.5, "Latent Space Visualization\n(Not available in deployed version)", 
+                          ha='center', va='center', fontsize=12)
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.axis('off')
+                    st.pyplot(fig)
         
         with advanced_techniques[3]:
             col1, col2 = st.columns([2, 1])
@@ -3518,38 +3542,50 @@ elif page == "Advanced Techniques":
                 """)
             
             with col2:
-                # Create uncertainty visualization
-                fig, ax = plt.subplots(figsize=(6, 5))
-                
-                # Generate main Pareto front
-                x = np.linspace(0.1, 0.9, 20)
-                y = 1 - x + np.random.normal(0, 0.02, 20)
-                
-                # Generate uncertainty bounds
-                upper_bound = y - np.random.uniform(0.05, 0.15, 20)
-                lower_bound = y + np.random.uniform(0.05, 0.15, 20)
-                
-                # Plot uncertainty regions
-                for i in range(len(x)):
-                    ax.fill_between([x[i]-0.02, x[i]+0.02], 
-                                   [lower_bound[i], lower_bound[i]], 
-                                   [upper_bound[i], upper_bound[i]], 
-                                   color='lightblue', alpha=0.5)
-                
-                # Plot main Pareto front
-                ax.scatter(x, y, c='blue', s=70, label='Predicted Solutions')
-                
-                # Plot bounds
-                ax.plot(x, upper_bound, 'r--', alpha=0.7, label='Confidence Bounds')
-                ax.plot(x, lower_bound, 'r--', alpha=0.7)
-                
-                ax.set_xlabel('Objective 1 (minimize)')
-                ax.set_ylabel('Objective 2 (minimize)')
-                ax.set_title('Uncertainty Estimation')
-                ax.legend()
-                
-                st.pyplot(fig)
-                st.caption("Visualization of uncertainty bounds for solutions on the Pareto front")
+                try:
+                    # Create uncertainty visualization
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    
+                    # Generate main Pareto front
+                    x = np.linspace(0.1, 0.9, 20)
+                    y = 1 - x + np.random.normal(0, 0.02, 20)
+                    
+                    # Generate uncertainty bounds
+                    upper_bound = y - np.random.uniform(0.05, 0.15, 20)
+                    lower_bound = y + np.random.uniform(0.05, 0.15, 20)
+                    
+                    # Plot uncertainty regions
+                    for i in range(len(x)):
+                        ax.fill_between([x[i]-0.02, x[i]+0.02], 
+                                       [lower_bound[i], lower_bound[i]], 
+                                       [upper_bound[i], upper_bound[i]], 
+                                       color='lightblue', alpha=0.5)
+                    
+                    # Plot main Pareto front
+                    ax.scatter(x, y, c='blue', s=70, label='Predicted Solutions')
+                    
+                    # Plot bounds
+                    ax.plot(x, upper_bound, 'r--', alpha=0.7, label='Confidence Bounds')
+                    ax.plot(x, lower_bound, 'r--', alpha=0.7)
+                    
+                    ax.set_xlabel('Objective 1 (minimize)')
+                    ax.set_ylabel('Objective 2 (minimize)')
+                    ax.set_title('Uncertainty Estimation')
+                    ax.legend()
+                    
+                    st.pyplot(fig)
+                    st.caption("Visualization of uncertainty bounds for solutions on the Pareto front")
+                except Exception as e:
+                    st.error(f"Uncertainty estimation visualization could not be rendered: {str(e)}")
+                    st.warning("Try running the app locally for complete visualization features.")
+                    # Display a simple placeholder image
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    ax.text(0.5, 0.5, "Uncertainty Estimation\n(Not available in deployed version)", 
+                          ha='center', va='center', fontsize=12)
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.axis('off')
+                    st.pyplot(fig)
         
         with advanced_techniques[4]:
             col1, col2 = st.columns([2, 1])
@@ -3661,84 +3697,92 @@ elif page == "Advanced Techniques":
                 """)
             
             with col2:
-                # Create multi-decoder architecture visualization
-                fig, ax = plt.subplots(figsize=(6, 5))
-                
-                # Define positions
-                encoder_pos = (0.5, 0.8)
-                decoder1_pos = (0.3, 0.5)
-                decoder2_pos = (0.5, 0.5)
-                decoder3_pos = (0.7, 0.5)
-                fusion_pos = (0.5, 0.2)
-                
-                # Draw boxes
-                encoder_box = patches.Rectangle((encoder_pos[0]-0.15, encoder_pos[1]-0.07), 0.3, 0.14, 
-                                               fill=True, color='lightblue', 
-                                               linewidth=1, edgecolor='blue')
-                decoder1_box = patches.Rectangle((decoder1_pos[0]-0.15, decoder1_pos[1]-0.07), 0.3, 0.14, 
-                                               fill=True, color='lightgreen', 
-                                               linewidth=1, edgecolor='green')
-                decoder2_box = patches.Rectangle((decoder2_pos[0]-0.15, decoder2_pos[1]-0.07), 0.3, 0.14, 
-                                               fill=True, color='lightgreen', 
-                                               linewidth=1, edgecolor='green')
-                decoder3_box = patches.Rectangle((decoder3_pos[0]-0.15, decoder3_pos[1]-0.07), 0.3, 0.14, 
-                                               fill=True, color='lightgreen', 
-                                               linewidth=1, edgecolor='green')
-                fusion_box = patches.Rectangle((fusion_pos[0]-0.15, fusion_pos[1]-0.07), 0.3, 0.14, 
-                                              fill=True, color='lightsalmon', 
-                                              linewidth=1, edgecolor='red')
-                
-                # Add to plot
-                ax.add_patch(encoder_box)
-                ax.add_patch(decoder1_box)
-                ax.add_patch(decoder2_box)
-                ax.add_patch(decoder3_box)
-                ax.add_patch(fusion_box)
-                
-                # Add text
-                ax.text(encoder_pos[0], encoder_pos[1], "Encoder", 
-                       ha='center', va='center', fontsize=10)
-                ax.text(decoder1_pos[0], decoder1_pos[1], "Distance\nDecoder", 
-                       ha='center', va='center', fontsize=9)
-                ax.text(decoder2_pos[0], decoder2_pos[1], "Time\nDecoder", 
-                       ha='center', va='center', fontsize=9)
-                ax.text(decoder3_pos[0], decoder3_pos[1], "Cost\nDecoder", 
-                       ha='center', va='center', fontsize=9)
-                ax.text(fusion_pos[0], fusion_pos[1], "Fusion Layer", 
-                       ha='center', va='center', fontsize=10)
-                
-                # Add arrows
-                ax.arrow(encoder_pos[0], encoder_pos[1]-0.07, 
-                        decoder1_pos[0]-encoder_pos[0], 
-                        decoder1_pos[1]-decoder1_pos[0]-encoder_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                ax.arrow(encoder_pos[0], encoder_pos[1]-0.07, 
-                        0, decoder2_pos[1]-encoder_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                ax.arrow(encoder_pos[0], encoder_pos[1]-0.07, 
-                        decoder3_pos[0]-encoder_pos[0], 
-                        decoder3_pos[1]-decoder3_pos[0]-encoder_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                
-                ax.arrow(decoder1_pos[0], decoder1_pos[1]-0.07, 
-                        fusion_pos[0]-decoder1_pos[0], 
-                        fusion_pos[1]-fusion_pos[0]-decoder1_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                ax.arrow(decoder2_pos[0], decoder2_pos[1]-0.07, 
-                        0, fusion_pos[1]-decoder2_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                ax.arrow(decoder3_pos[0], decoder3_pos[1]-0.07, 
-                        fusion_pos[0]-decoder3_pos[0], 
-                        fusion_pos[1]-fusion_pos[0]-decoder3_pos[1]+0.07, 
-                        head_width=0.02, head_length=0.02, fc='black', ec='black')
-                
-                # Set limits and remove axes
-                ax.set_xlim(0, 1)
-                ax.set_ylim(0, 1)
-                ax.axis('off')
-                
-                st.pyplot(fig)
-                st.caption("Multi-decoder architecture with specialized decoders for different objectives")
+                try:
+                    # Create multi-decoder architecture visualization
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    
+                    # Define positions
+                    encoder_pos = (0.5, 0.8)
+                    decoder1_pos = (0.3, 0.5)
+                    decoder2_pos = (0.5, 0.5)
+                    decoder3_pos = (0.7, 0.5)
+                    fusion_pos = (0.5, 0.2)
+                    
+                    # Draw boxes
+                    encoder_box = patches.Rectangle((encoder_pos[0]-0.15, encoder_pos[1]-0.07), 0.3, 0.14, 
+                                                   fill=True, color='lightblue', 
+                                                   linewidth=1, edgecolor='blue')
+                    decoder1_box = patches.Rectangle((decoder1_pos[0]-0.15, decoder1_pos[1]-0.07), 0.3, 0.14, 
+                                                   fill=True, color='lightgreen', 
+                                                   linewidth=1, edgecolor='green')
+                    decoder2_box = patches.Rectangle((decoder2_pos[0]-0.15, decoder2_pos[1]-0.07), 0.3, 0.14, 
+                                                   fill=True, color='lightgreen', 
+                                                   linewidth=1, edgecolor='green')
+                    decoder3_box = patches.Rectangle((decoder3_pos[0]-0.15, decoder3_pos[1]-0.07), 0.3, 0.14, 
+                                                   fill=True, color='lightgreen', 
+                                                   linewidth=1, edgecolor='green')
+                    fusion_box = patches.Rectangle((fusion_pos[0]-0.15, fusion_pos[1]-0.07), 0.3, 0.14, 
+                                                  fill=True, color='lightsalmon', 
+                                                  linewidth=1, edgecolor='red')
+                    
+                    # Add to plot
+                    ax.add_patch(encoder_box)
+                    ax.add_patch(decoder1_box)
+                    ax.add_patch(decoder2_box)
+                    ax.add_patch(decoder3_box)
+                    ax.add_patch(fusion_box)
+                    
+                    # Add text
+                    ax.text(encoder_pos[0], encoder_pos[1], "Encoder", 
+                           ha='center', va='center', fontsize=10)
+                    ax.text(decoder1_pos[0], decoder1_pos[1], "Distance\nDecoder", 
+                           ha='center', va='center', fontsize=9)
+                    ax.text(decoder2_pos[0], decoder2_pos[1], "Time\nDecoder", 
+                           ha='center', va='center', fontsize=9)
+                    ax.text(decoder3_pos[0], decoder3_pos[1], "Cost\nDecoder", 
+                           ha='center', va='center', fontsize=9)
+                    ax.text(fusion_pos[0], fusion_pos[1], "Fusion Layer", 
+                           ha='center', va='center', fontsize=10)
+                    
+                    # Add arrows - using simplified approach to avoid complexity
+                    ax.plot([encoder_pos[0], decoder1_pos[0]], 
+                          [encoder_pos[1]-0.07, decoder1_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    ax.plot([encoder_pos[0], decoder2_pos[0]], 
+                          [encoder_pos[1]-0.07, decoder2_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    ax.plot([encoder_pos[0], decoder3_pos[0]], 
+                          [encoder_pos[1]-0.07, decoder3_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    
+                    ax.plot([decoder1_pos[0], fusion_pos[0]], 
+                          [decoder1_pos[1]-0.07, fusion_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    ax.plot([decoder2_pos[0], fusion_pos[0]], 
+                          [decoder2_pos[1]-0.07, fusion_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    ax.plot([decoder3_pos[0], fusion_pos[0]], 
+                          [decoder3_pos[1]-0.07, fusion_pos[1]+0.07], 
+                          'k-', alpha=0.7)
+                    
+                    # Set limits and remove axes
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.axis('off')
+                    
+                    st.pyplot(fig)
+                    st.caption("Multi-decoder architecture with specialized decoders for different objectives")
+                except Exception as e:
+                    st.error(f"Multi-decoder visualization could not be rendered: {str(e)}")
+                    st.warning("Try running the app locally for complete visualization features.")
+                    # Display a simple placeholder image
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    ax.text(0.5, 0.5, "Multi-Decoder Architecture\n(Not available in deployed version)", 
+                          ha='center', va='center', fontsize=12)
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.axis('off')
+                    st.pyplot(fig)
     
     # Performance Comparison with Advanced Techniques
     st.subheader("Performance Comparison with Advanced Techniques")
