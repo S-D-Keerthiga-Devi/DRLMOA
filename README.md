@@ -23,6 +23,7 @@ The implementation includes:
 - `tuning_demo_fixed.py` - Quick demo of hyperparameter tuning with fewer trials
 - `test_tuned_model.py` - Script to compare original and tuned models
 - `README.md` - This documentation file
+- `app.py` - Streamlit web application for interactive demonstration
 
 ## Requirements
 
@@ -70,6 +71,39 @@ Parameters:
 - `--n_cities` - Number of cities (default: 20)
 - `--input_dim` - Input dimension (default: 4)
 - `--hidden_dim` - Hidden dimension (default: 128)
+
+## Deployment
+
+To deploy this application:
+
+### Local Deployment
+Run the Streamlit app locally:
+```bash
+streamlit run app.py
+```
+
+### Streamlit Community Cloud Deployment
+1. Ensure your repository is pushed to GitHub
+2. Visit [Streamlit Community Cloud](https://share.streamlit.io/)
+3. Sign in with your GitHub account
+4. Click "New app"
+5. Select your repository, branch (main), and specify the main file path (app.py)
+6. Click "Deploy"
+
+The repository already includes the necessary configuration files:
+- `requirements.txt` - Python dependencies
+- `packages.txt` - System-level dependencies
+- `.streamlit/` - Streamlit configuration
+
+### Heroku Deployment
+To deploy on Heroku:
+1. Create a Heroku account
+2. Install Heroku CLI
+3. Run these commands:
+```bash
+heroku create your-app-name
+git push heroku main
+```
 
 ### Hyperparameter Tuning
 
